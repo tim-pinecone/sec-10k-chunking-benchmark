@@ -26,7 +26,27 @@ echo "   ✅  Account: ${ACCOUNT_ID}"
 
 REGION="${AWS_REGION:-us-east-1}"
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
-ECR_REPO="sec-10k-benchmark"
+
+# ---------------------------------------------------------------------------
+# Parse flags
+# ---------------------------------------------------------------------------
+SKIP_BUILD=0
+USE_JINA=0
+for arg in "$@"; do
+  [ "$arg" = "--skip-build" ] && SKIP_BUILD=1
+  [ "$arg" = "--jina" ]       && USE_JINA=1
+done
+
+if [ "$USE_JINA" -eq 1 ]; then
+  ECR_REPO="sec-10k-benchmark-jina"
+  DOCKERFILE="../Dockerfile.jina"
+  echo "   Mode: Jina v5 benchmark (jina_benchmark.py)"
+else
+  ECR_REPO="sec-10k-benchmark"
+  DOCKERFILE="../Dockerfile"
+  echo "   Mode: Standard benchmark (benchmark.py)"
+fi
+
 ECR_IMAGE="${ECR_REGISTRY}/${ECR_REPO}:latest"
 
 # ---------------------------------------------------------------------------
@@ -40,17 +60,12 @@ aws ecr describe-repositories --repository-names "${ECR_REPO}" --region "${REGIO
 # ---------------------------------------------------------------------------
 # Build + push Docker image (skipped with --skip-build)
 # ---------------------------------------------------------------------------
-SKIP_BUILD=0
-for arg in "$@"; do
-  [ "$arg" = "--skip-build" ] && SKIP_BUILD=1
-done
-
 if [ "$SKIP_BUILD" -eq 0 ]; then
   echo ""
   echo "🐳 Building Docker image..."
   docker build --platform linux/amd64 \
     -t "${ECR_REPO}:latest" \
-    -f ../Dockerfile \
+    -f "${DOCKERFILE}" \
     ..
   echo "   ✅  Build complete"
 
@@ -103,10 +118,10 @@ fi
 
 terraform init -upgrade -input=false
 
-# Strip --skip-build before passing remaining args to terraform
+# Strip --skip-build and --jina before passing remaining args to terraform
 TERRAFORM_ARGS=()
 for arg in "$@"; do
-  [ "$arg" != "--skip-build" ] && TERRAFORM_ARGS+=("$arg")
+  [ "$arg" != "--skip-build" ] && [ "$arg" != "--jina" ] && TERRAFORM_ARGS+=("$arg")
 done
 
 SUBCMD="${TERRAFORM_ARGS[0]:-apply}"
