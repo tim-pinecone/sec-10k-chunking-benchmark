@@ -1,0 +1,26 @@
+# Credentials and secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Large data files
+raw/
+cleaned/
+dataset/
+staging/
+
+# Terraform state (contains AWS account IDs, resource ARNs)
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfstate.*.backup
+infra/.terraform/
+infra/.terraform.lock.hcl
+
+# Editor / tooling
+.claude/
+.DS_Store

@@ -1,0 +1,14 @@
+mtcb
+chonkie[st,semantic,neural]
+sentence-transformers>=5.0.0
+sec-edgar-downloader
+beautifulsoup4
+lxml
+pandas
+pyarrow
+boto3
+openai
+python-dotenv
+huggingface_hub
+datasets
+numpy

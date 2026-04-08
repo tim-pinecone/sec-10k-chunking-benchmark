@@ -1,0 +1,33 @@
+FROM --platform=linux/amd64 python:3.11-slim
+
+# catsu (chonkie dependency) is a Rust extension — install Rust to global paths so
+# all Docker layers see the same toolchain (mirrors the official Rust Docker image approach)
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:${PATH}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl build-essential pkg-config libssl-dev \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y \
+        --no-modify-path \
+        --default-toolchain stable \
+        --profile minimal \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install uv --quiet
+
+WORKDIR /app
+
+# Install CPU-only PyTorch first so chonkie doesn't pull the CUDA variant
+RUN uv pip install --system "torch>=2.6" --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN uv pip install --system -r requirements.txt
+
+COPY sec-dataset-builder.py .
+
+RUN mkdir -p raw cleaned dataset results
+
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "sec-dataset-builder.py"]
+CMD ["all"]
