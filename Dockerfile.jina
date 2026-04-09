@@ -1,12 +1,14 @@
-FROM --platform=linux/amd64 python:3.11-slim
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 
 RUN pip install uv --quiet
 
-# CUDA 12.8 — torch 2.8+ required by jina-embeddings-v5
-RUN uv pip install --system torch \
-    --index-url https://download.pytorch.org/whl/cu128
+# TORCH_INDEX is overridden by validate.sh on ARM64 Macs to use CPU wheels.
+# EC2 deploys (deploy.sh) always build with --platform linux/amd64 and the
+# default CUDA 12.8 index.
+ARG TORCH_INDEX=https://download.pytorch.org/whl/cu128
+RUN uv pip install --system torch --index-url ${TORCH_INDEX}
 
 # Jina v5 runtime deps
 # NOTE: flash_attention_2 is NOT installed — T4 (g4dn.xlarge) is Turing architecture;

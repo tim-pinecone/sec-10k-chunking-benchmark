@@ -66,7 +66,8 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
   docker build --platform linux/amd64 \
     -t "${ECR_REPO}:latest" \
     -f "${DOCKERFILE}" \
-    ..
+    .. \
+    $([ "${DOCKERFILE}" = "../Dockerfile.jina" ] && echo "--build-arg TORCH_INDEX=https://download.pytorch.org/whl/cu128" || true)
   echo "   ✅  Build complete"
 
   echo "📤 Pushing to ECR..."

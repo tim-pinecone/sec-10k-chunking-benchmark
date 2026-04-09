@@ -137,11 +137,14 @@ print(f"\n🧠 Loading {MODEL_ID}...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"   Device: {device}")
 
+# bfloat16 on GPU saves memory; float32 on CPU avoids BLAS fallback warnings
+_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
 model     = AutoModel.from_pretrained(
     MODEL_ID,
     trust_remote_code=True,
-    torch_dtype=torch.bfloat16,
+    dtype=_dtype,
 )
 model = model.to(device).eval()
 print(f"   Loaded ✓  (dim={EMBED_DIM}, max_seq={MAX_SEQ_LEN})")
@@ -550,10 +553,13 @@ questions         = [row["question"]           for row in ds_questions]
 relevant_passages = [row["chunk_must_contain"] for row in ds_questions]
 
 if args.dry_run:
-    corpus            = corpus[:5]
-    questions         = questions[:25]
-    relevant_passages = relevant_passages[:25]
-    print(f"  🔬 Dry run: {len(corpus)} docs, {len(questions)} questions")
+    # Truncate the first document to ~3000 chars so each chunker config
+    # produces only a handful of chunks — fast on CPU, still exercises every
+    # code path including LateChunker's hidden-state span pooling.
+    corpus            = [corpus[0][:3000]]
+    questions         = questions[:5]
+    relevant_passages = relevant_passages[:5]
+    print(f"  🔬 Dry run: 1 doc (truncated to 3000 chars), {len(questions)} questions")
 else:
     print(f"  {len(corpus)} documents, {len(questions)} QA pairs")
 
